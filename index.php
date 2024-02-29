@@ -17,14 +17,16 @@ if (!isset($_SESSION['logged'])) {
 				$_SESSION['email'] = $login['email'];
 				
 				$random_new = mt_rand(1000000,999999999);
-				$ssql2 = $conexion->query("UPDATE usuarios set cookie='$random_new' where id='$cookie_id'");
+				$ssql2 = $conexion->query("UPDATE usuarios set cookie='$random_new' where id='$cookie_id'"); //cambiar nombre variable
 
 				setcookie("id", $cookie_id , time()+(60*60*24*30));
 				setcookie("random", $random_new, time()+(60*60*24*30));
 			}
 		}
 	}
-} elseif (isset($_SESSION['logged']) === FALSE) {
+}
+
+if (isset($_SESSION['logged']) === FALSE) {
 	header("Location: login.php");
 }
 ?>

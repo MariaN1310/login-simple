@@ -23,7 +23,7 @@ if (isset($_REQUEST['iniciar'])) {
 			$fila = mysqli_fetch_assoc($resultado);
 			$valor_cookie = $fila['cookie'];
 
-			if ($valor_cookie != $random) {
+			if ($valor_cookie != $random) { // revisar
 				
 				$ssql = $conexion->query("UPDATE usuarios set cookie='$random' where id='$idDB'");
 			
@@ -32,6 +32,7 @@ if (isset($_REQUEST['iniciar'])) {
 				
 				header("Location: index.php");
 			}
+
 		} elseif ($usuario != isset($login['usuario'])) {
 			echo "<div class='error mt-3'><span>El Nombre de Usuario que has Introducido es Incorrecto</span></div>";
 		} elseif (password_verify($password, $login['contrasena']) === FALSE) {
@@ -70,36 +71,7 @@ if (isset($_REQUEST['iniciar'])) {
 				<div class="clearfix">
 					<a href="registro.php" class="float-end">Registrese</a>
 				</div>
-				<div class="clearfix">
-					<a href="#" class="float-end forgot">&#xBF;Olvid&#xF3; su contrase&#xF1;a?</a>
-				</div>
 			</form>
 		</div>
-		<div class="forgotForm container" style="display: none;">
-			<form method="post">
-				<h2 class="text-center">Recuperar Contraseña</h2>
-				<p>Se le enviarán las instrucciones por E-mail</p>
-				<div class="input-group mb-3">
-					<span class="input-group-text" id="basic-addon1"><i class="fas fa-envelope"></i></span>
-					<input type="email" class="form-control" id="fp_email" name="emailF" placeholder="E-Mail" required>
-				</div>
-				<div class="mb-3 d-grid gap-2 col-6 mx-auto">
-					<button type="submit "class="btn btn-primary" name="forgotBTN">Enviar Mail</button>
-				</div>
-				<div class="clearfix">
-					<a href="#" class="float-end login">Iniciar Sesión</a>
-				</div>
-			</form>
-		</div>
-		<script type="text/javascript">
-			$(".forgot").click(function(event) {
-				$(".loginForm").slideUp("slow");
-				$(".forgotForm").slideDown("slow");
-			});
-			$(".login").click(function(event) {
-				$(".forgotForm").slideUp("slow");
-				$(".loginForm").slideDown("slow");
-			});
-		</script>
 	</body>
 </html>

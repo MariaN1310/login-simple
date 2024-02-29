@@ -9,5 +9,5 @@ session_destroy();
 setcookie("id", time() - 3600);
 setcookie("random", time() - 3600);
 
-header("Location: index.php");
+header("Location: login.php");
 ?>
