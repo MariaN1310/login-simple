@@ -1,78 +1,92 @@
 <?php
 session_start();
 require 'php/conexion.php';
-$fecha = date("Y-m-d H:i:s");
-$fecha3 = $fecha.'.000000';
 
 if (isset($_REQUEST['registrar'])) {
-	$email;$comment;
-	if (isset($_POST['email'])) {
-		$email = $_POST['email'];
-	}
+    $pase = true; // Variable para rastrear si se pasan todas las validaciones
 
-	$pase = TRUE;
-	if (isset($_REQUEST['registrar'])) {
-		$_SESSION['email'] = $_REQUEST['email'];
-		$email = $_SESSION['email'];
-		$_SESSION['usuario'] = $_REQUEST['usuario'];
-		$usuario = $_SESSION['usuario'];
-		
+    // Verificar si se proporcionó un correo electrónico
+    if (!isset($_POST['email'])) {
+        echo "<script type=\"text/javascript\">alert('Debe proporcionar un correo electrónico.'); history.go(-1);</script>";
+        $pase = false;
+    } else {
+        $email = $_POST['email'];
+        $_SESSION['email'] = $email;
+    }
 
-		$correoExiste = $conexion->query("SELECT email FROM usuarios WHERE email = '$email'");
-		if ($correoExiste->num_rows === 1) {
-			echo "<script type=\"text/javascript\">
-				alert('El Correo Electronico ya Existe. Intente uno diferente o Inicie Sesión.');
-				history.go(-1);
-			 </script>";
-			$pase = FALSE;
-		}
+    // Verificar si se proporcionó un nombre de usuario
+    if (!isset($_REQUEST['usuario'])) {
+        echo "<script type=\"text/javascript\">alert('Debe proporcionar un nombre de usuario.'); history.go(-1);</script>";
+        $pase = false;
+    } else {
+        $usuario = $_REQUEST['usuario'];
+        $_SESSION['usuario'] = $usuario;
+    }
 
-		$usuario = $_REQUEST['usuario'];
-		$usuarioExiste = $conexion->query("SELECT usuario FROM usuarios WHERE usuario = '$usuario'");
-		if ($usuarioExiste->num_rows === 1) {
-			echo "<script type=\"text/javascript\">
-				alert('El Nombre de Usuario ya Existe. Intente uno diferente o Inicie Sesión.');
-				history.go(-1);
-			</script>";
-			$pase = FALSE;
-		}
-	}
-	
-	if (isset($_REQUEST['registrar']) && $pase === TRUE) {
-		if ($_REQUEST['contrasena'] === $_REQUEST['contrasenaConfirmar']) {
-			$email = $_REQUEST['email'];
-			$usuario = $_REQUEST['usuario'];
-			$password = $_REQUEST['contrasena'];
-			
-			$encriptar = password_hash($password, PASSWORD_BCRYPT, ["cost" => '11']);
+    // Verificar si el correo electrónico ya existe en la base de datos
+    $correoExiste = $conexion->prepare("SELECT email FROM usuarios WHERE email = ?");
+    $correoExiste->bind_param("s", $email);
+    $correoExiste->execute();
+    $correoExiste->store_result(); // Almacenar el resultado
+    if ($correoExiste->num_rows === 1) {
+        echo "<script type=\"text/javascript\">alert('El correo electrónico ya existe. Intente uno diferente o inicie sesión.'); history.go(-1);</script>";
+        $pase = false;
+    }
 
-			if ($conexion->query("INSERT INTO usuarios (email, usuario, contrasena) VALUES ('$email', '$usuario', '$encriptar')") === TRUE) {
-				$_SESSION['logged'] = "Logged";
-				$_SESSION['usuario'] = $usuario;
+    // Verificar si el nombre de usuario ya existe en la base de datos
+    $usuarioExiste = $conexion->prepare("SELECT usuario FROM usuarios WHERE usuario = ?");
+    $usuarioExiste->bind_param("s", $usuario);
+    $usuarioExiste->execute();
+    $usuarioExiste->store_result(); // Almacenar el resultado
+    if ($usuarioExiste->num_rows === 1) {
+        echo "<script type=\"text/javascript\">alert('El nombre de usuario ya existe. Intente uno diferente o inicie sesión.'); history.go(-1);</script>";
+        $pase = false;
+    }
 
-				$id = $conexion->query("SELECT id FROM usuarios WHERE usuario='$usuario'");
-				while ($id2 = $id->fetch_assoc()) {
-					$_SESSION['id'] = $id2['id'];
-				}
+    // Si todas las validaciones pasan, continuar con el registro
+    if ($pase) {
+        $contrasena = $_REQUEST['contrasena'];
+        $contrasenaConfirmar = $_REQUEST['contrasenaConfirmar'];
 
-				$idoriginal = $_SESSION['id'];
+        if ($contrasena !== $contrasenaConfirmar) {
+            echo "<script type=\"text/javascript\">alert('Las contraseñas no son iguales. Intente de nuevo.'); history.go(-1);</script>";
+        } else {
+            $encriptar = password_hash($contrasena, PASSWORD_BCRYPT, ["cost" => 11]);
 
-				$numero_aleatorio = mt_rand(1000000,999999999);
-				$ssql = $conexion->query("UPDATE usuarios set cookie='$numero_aleatorio' where id='$idoriginal'");
+            $sqlInsertar = $conexion->prepare("INSERT INTO usuarios (email, usuario, contrasena) VALUES (?, ?, ?)");
+            $sqlInsertar->bind_param("sss", $email, $usuario, $encriptar);
+            if ($sqlInsertar->execute()) {
+                // Obtener el ID del usuario recién registrado
+                $sqlID = $conexion->prepare("SELECT id FROM usuarios WHERE usuario = ?");
+                $sqlID->bind_param("s", $usuario);
+                $sqlID->execute();
+                $id_result = $sqlID->get_result();
+                $id_row = $id_result->fetch_assoc();
+                $id = $id_row['id'];
 
-				setcookie("id", $_SESSION['id'] , time()+(60*60*24*365));
-				setcookie("num_aleatorio", $numero_aleatorio, time()+(60*60*24*365));
-				
-				header("Location: index.php");
-			}
-		} else {
-			echo "<script type=\"text/javascript\">
-				alert('Las Contraseñas no son iguales. Intente de nuevo.');
-				history.go(-1);
-			</script>";
-			$pase = FALSE;
-		}
-	}
+                // Generar un número aleatorio y actualizar la cookie en la DB
+                $numero_aleatorio = mt_rand(1000000, 999999999);
+                $ssql = $conexion->prepare("UPDATE usuarios SET cookie = ? WHERE id = ?");
+                $ssql->bind_param("ii", $numero_aleatorio, $id);
+                if ($ssql->execute()) {
+                    // Establecer las neuvas cookies
+                    setcookie("id", $id, time()+(60*60*24*30), "/");
+                    setcookie("random", $numero_aleatorio, time()+(60*60*24*30));
+
+                    // Iniciar sesión y redirigir al usuario
+                    $_SESSION['logged'] = "Logged";
+                    $_SESSION['usuario'] = $usuario;
+                    $_SESSION['id'] = $id;
+                    header("Location: index.php");
+                    exit;
+                } else {
+                    echo "<script type=\"text/javascript\">alert('Error al actualizar la cookie en la base de datos.'); history.go(-1);</script>";
+                }
+            } else {
+                echo "<script type=\"text/javascript\">alert('Error al registrar el usuario. Inténtelo de nuevo más tarde.'); history.go(-1);</script>";
+            }
+        }
+    }
 }
 ?>
 <!DOCTYPE html>

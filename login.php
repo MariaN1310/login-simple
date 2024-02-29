@@ -7,37 +7,53 @@ if (isset($_REQUEST['iniciar'])) {
 	$usuario = $_REQUEST['usuario'];
 	$password = $_REQUEST['contrasena'];
 
-	$sql = $conexion->query("SELECT * FROM usuarios WHERE usuario = '$usuario'");
-	while ($login = $sql->fetch_assoc()) {
+	// Consulta preparada para evitar inyección SQL
+	$sql = $conexion->prepare("SELECT * FROM usuarios WHERE usuario = ?");
+	$sql->bind_param("s", $usuario);
+	$sql->execute();
+	$login = $sql->get_result()->fetch_assoc();
 
-		if ($usuario == isset($login['usuario']) && password_verify($password, $login['contrasena'])) {
-			$_SESSION['logged'] = "Logged";
-			$_SESSION['usuario'] = $login['usuario'];
-			$_SESSION['id'] = $login['id'];
-			$_SESSION['email'] = $login['email'];
-	
+	if ($login && password_verify($password, $login['contrasena'])) {
+		$_SESSION['logged'] = "Logged";
+		$_SESSION['usuario'] = $login['usuario'];
+		$_SESSION['id'] = $login['id'];
+		$_SESSION['email'] = $login['email'];
+
+		$max_intentos = 5; // Número máximo de intentos permitidos
+		$intentos = 0;
+		$cookie_encontrada = false;
+		
+		do {
 			$random = mt_rand(1000000,999999999);
-			
-			$random_asignado = "SELECT cookie FROM usuarios WHERE cookie = $random";
-			$resultado = mysqli_query($conexion, $random_asignado);
+			$resultado = mysqli_query($conexion, "SELECT cookie FROM usuarios WHERE cookie = '$random'");
 			$fila = mysqli_fetch_assoc($resultado);
-			$valor_cookie = $fila['cookie'];
-
-			if ($valor_cookie != $random) { // revisar
-				
-				$ssql = $conexion->query("UPDATE usuarios set cookie='$random' where id='$idDB'");
-			
-				setcookie("id", $_SESSION['id'] , time()+(60*60*24*30));
-				setcookie("random", $random, time()+(60*60*24*30));
-				
-				header("Location: index.php");
+			$valor_cookie = ($fila !== null) ? $fila['cookie'] : null; // Si no se encuentra la cookie, se asigna null
+			$intentos++;
+			if ($valor_cookie === null) {
+				$cookie_encontrada = true;
 			}
-
-		} elseif ($usuario != isset($login['usuario'])) {
-			echo "<div class='error mt-3'><span>El Nombre de Usuario que has Introducido es Incorrecto</span></div>";
-		} elseif (password_verify($password, $login['contrasena']) === FALSE) {
-			echo "<div class='error mt-3'><span>La Contraseña que has Introducido es Incorrecta</span></div>";
+		} while (!$cookie_encontrada && $intentos < $max_intentos); // Continuar si no se encuentra la cookie y no se supera el límite de intentos
+		
+		// Verificar si no se encontró una cookie después de los intentos
+		if (!$cookie_encontrada) {
+			echo "<script>window.location.reload();</script>"; // Actualizar la página
 		}
+
+		// Actualización de cookie en la DB
+		$actualizarCookie = $conexion->prepare("UPDATE usuarios SET cookie=? WHERE id=?");
+		$actualizarCookie->bind_param("si", $random, $_SESSION['id']);
+		$actualizarCookie->execute();
+		
+		// Establecer las nuevas cookies
+		setcookie("id", $_SESSION['id'], time()+(60*60*24*30), "/", "", true, true);
+		setcookie("random", $random, time()+(60*60*24*30), "/", "", true, true);
+
+		// Redirigir a la página de inicio de sesión y salir del script
+		header("Location: index.php");
+		exit;
+
+	} else {
+		echo "<div class='error mt-3'><span>Usuario y/o contraseña incorrectos</span></div>";
 	}
 }
 ?>

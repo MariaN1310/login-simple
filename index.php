@@ -4,30 +4,38 @@ require 'php/conexion.php';
 
 if (!isset($_SESSION['logged'])) {
 	if (isset($_COOKIE["id"]) && isset($_COOKIE["random"])) {
-		
 		$cookie_id = $_COOKIE["id"];
 		$cookie_random = $_COOKIE["random"];
-		$ssql = $conexion->query("SELECT * from usuarios where id = '$cookie_id' AND cookie = '$cookie_random'");
 
-		while ($login = $ssql->fetch_assoc()) {
-			if (($login['cookie'] == $cookie_random) && ($login['id'] == $cookie_id)) {
-				$_SESSION['logged'] = "Logged";
-				$_SESSION['usuario'] = $login['usuario'];
-				$_SESSION['id'] = $login['id'];
-				$_SESSION['email'] = $login['email'];
-				
-				$random_new = mt_rand(1000000,999999999);
-				$ssql2 = $conexion->query("UPDATE usuarios set cookie='$random_new' where id='$cookie_id'"); //cambiar nombre variable
+		$sql = $conexion->prepare("SELECT * FROM usuarios WHERE id = ? AND cookie = ?");
+		$sql->bind_param("is", $cookie_id, $cookie_random);
+		$sql->execute();
+		$login = $sql->get_result()->fetch_assoc();
 
-				setcookie("id", $cookie_id , time()+(60*60*24*30));
-				setcookie("random", $random_new, time()+(60*60*24*30));
-			}
+		if ($login) {
+			$_SESSION['logged'] = "Logged";
+			$_SESSION['usuario'] = $login['usuario'];
+			$_SESSION['id'] = $login['id'];
+			$_SESSION['email'] = $login['email'];
+
+			// Generar un nuevo valor aleatorio para la cookie
+			$random_new = mt_rand(1000000, 999999999);
+
+			// Actualizar la cookie en la base de datos
+			$actualizarCookies = $conexion->prepare("UPDATE usuarios SET cookie = ? WHERE id = ?");
+			$actualizarCookies->bind_param("si", $random_new, $cookie_id);
+			$actualizarCookies->execute();
+
+			// Establecer las nuevas cookies
+			setcookie("id", $cookie_id , time()+(60*60*24*30), "/", "", true, true);
+			setcookie("random", $random_new, time()+(60*60*24*30), "/", "", true, true);
 		}
 	}
 }
 
-if (isset($_SESSION['logged']) === FALSE) {
+if (!isset($_SESSION['logged'])) {
 	header("Location: login.php");
+	exit;
 }
 ?>
 <!DOCTYPE html>
