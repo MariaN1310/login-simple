@@ -3,37 +3,34 @@ session_start();
 require 'php/conexion.php';
 
 if (!isset($_SESSION['logged'])) {
-	if (isset($_COOKIE["id"]) && isset($_COOKIE["num_aleatorio"])){
+	if (isset($_COOKIE["id"]) && isset($_COOKIE["random"])) {
 		
-		$cookie1 = $_COOKIE["id"];
-		$cookie2 = $_COOKIE["num_aleatorio"];
-		$ssql = $conexion->query("SELECT * from usuarios where id = '$cookie1' AND cookie = '$cookie2'");
+		$cookie_id = $_COOKIE["id"];
+		$cookie_random = $_COOKIE["random"];
+		$ssql = $conexion->query("SELECT * from usuarios where id = '$cookie_id' AND cookie = '$cookie_random'");
 
 		while ($login = $ssql->fetch_assoc()) {
-			$idDB = $login['id'];
-			$usuarioDB = $login['usuario'];
-			$emailDB = $login['email'];
-			$cookieDB = $login['cookie'];
-		}
-		
-		if (($cookieDB == $cookie2) && ($idDB == $cookie1)) {
-			$_SESSION['logged'] = "Logged";
-			$_SESSION['usuario'] = $usuarioDB;
-			$_SESSION['id'] = $idDB;
-			$_SESSION['email'] = $emailDB;
-		}
-		setcookie("id", $cookie1 , time()+(60*60*24*365));
-		setcookie("num_aleatorio", $cookie2, time()+(60*60*24*365));
-	}
-}
+			if (($login['cookie'] == $cookie_random) && ($login['id'] == $cookie_id)) {
+				$_SESSION['logged'] = "Logged";
+				$_SESSION['usuario'] = $login['usuario'];
+				$_SESSION['id'] = $login['id'];
+				$_SESSION['email'] = $login['email'];
+				
+				$random_new = mt_rand(1000000,999999999);
+				$ssql2 = $conexion->query("UPDATE usuarios set cookie='$random_new' where id='$cookie_id'");
 
-if (isset($_SESSION['logged']) === FALSE) {
+				setcookie("id", $cookie_id , time()+(60*60*24*30));
+				setcookie("random", $random_new, time()+(60*60*24*30));
+			}
+		}
+	}
+} elseif (isset($_SESSION['logged']) === FALSE) {
 	header("Location: login.php");
 }
 ?>
 <!DOCTYPE html>
 <html lang="es">
-    <head>
+	<head>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<title>Index - Login-Simple</title>
@@ -43,17 +40,17 @@ if (isset($_SESSION['logged']) === FALSE) {
 		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 	</head>
 	<body>
-		Logueo OK.<br>
-        Información de SESSION:<br>
-    
-        <?php
-        echo "Logged: ".$_SESSION['logged']."<br>";
-        echo "Usuario: ".$_SESSION['usuario']."<br>";
-        echo "ID: ".$_SESSION['id']."<br>";
-        echo "E-mail: ".$_SESSION['email']."<br><br>";
+		Información de SESSION<br><br>
+	
+		<?php
+		echo "Logged: ".$_SESSION['logged']."<br>";
+		echo "Usuario: ".$_SESSION['usuario']."<br>";
+		echo "ID Cliente: ".$_SESSION['id']."<br>";
+		echo "E-mail: ".$_SESSION['email']."<br><br>";
 
-        echo "Numero Aleatorio Cookie: ".$_COOKIE["num_aleatorio"]."<br>";
+		echo "Numero Aleatorio Cookie: ".$_COOKIE["random"]."<br><br>";
+		?>
 
-        ?>
+		<a class="" href="logout.php">Cerrar Sesión</a>
 	</body>
 </html>

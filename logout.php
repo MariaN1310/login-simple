@@ -5,7 +5,9 @@ if (isset($_SESSION['logged']) === FALSE) {
     header("Location: login.php");
 }
 
-unset($_SESSION['logged']);
 session_destroy();
+setcookie("id", time() - 3600);
+setcookie("random", time() - 3600);
+
 header("Location: index.php");
 ?>

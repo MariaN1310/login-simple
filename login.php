@@ -9,28 +9,34 @@ if (isset($_REQUEST['iniciar'])) {
 
 	$sql = $conexion->query("SELECT * FROM usuarios WHERE usuario = '$usuario'");
 	while ($login = $sql->fetch_assoc()) {
-		$idDB = $login['id'];
-		$usuarioDB = $login['usuario'];
-		$passwordDB = $login['contrasena'];
-	}
-	if ($usuario == isset($usuarioDB) && password_verify($password, $passwordDB)) {
-		$_SESSION['logged'] = "Logged";
-		$_SESSION['usuario'] = $usuarioDB;
-		$_SESSION['id'] = $idDB;
 
-		mt_srand (time());
-		$numero_aleatorio = mt_rand(1000000,999999999);
-		$ssql = $conexion->query("UPDATE usuarios set cookie='$numero_aleatorio' where id='$idDB'");
-		
-		setcookie("id", $_SESSION['id'] , time()+(60*60*24*365));
-		setcookie("num_aleatorio", $numero_aleatorio, time()+(60*60*24*365));
-		
-		header("Location: index.php");
-		
-	} elseif ($usuario != isset($usuarioDB)) {
-		echo "<div class='error mt-3'><span>El Nombre de Usuario que has Introducido es Incorrecto</span></div>";
-	} elseif (password_verify($password, $passwordDB) === FALSE) {
-		echo "<div class='error mt-3'><span>La Contraseña que has Introducido es Incorrecta</span></div>";
+		if ($usuario == isset($login['usuario']) && password_verify($password, $login['contrasena'])) {
+			$_SESSION['logged'] = "Logged";
+			$_SESSION['usuario'] = $login['usuario'];
+			$_SESSION['id'] = $login['id'];
+			$_SESSION['email'] = $login['email'];
+	
+			$random = mt_rand(1000000,999999999);
+			
+			$random_asignado = "SELECT cookie FROM usuarios WHERE cookie = $random";
+			$resultado = mysqli_query($conexion, $random_asignado);
+			$fila = mysqli_fetch_assoc($resultado);
+			$valor_cookie = $fila['cookie'];
+
+			if ($valor_cookie != $random) {
+				
+				$ssql = $conexion->query("UPDATE usuarios set cookie='$random' where id='$idDB'");
+			
+				setcookie("id", $_SESSION['id'] , time()+(60*60*24*30));
+				setcookie("random", $random, time()+(60*60*24*30));
+				
+				header("Location: index.php");
+			}
+		} elseif ($usuario != isset($login['usuario'])) {
+			echo "<div class='error mt-3'><span>El Nombre de Usuario que has Introducido es Incorrecto</span></div>";
+		} elseif (password_verify($password, $login['contrasena']) === FALSE) {
+			echo "<div class='error mt-3'><span>La Contraseña que has Introducido es Incorrecta</span></div>";
+		}
 	}
 }
 ?>

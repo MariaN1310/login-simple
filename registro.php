@@ -56,7 +56,7 @@ if (isset($_REQUEST['registrar'])) {
 				}
 
 				$idoriginal = $_SESSION['id'];
-				mt_srand (time());
+
 				$numero_aleatorio = mt_rand(1000000,999999999);
 				$ssql = $conexion->query("UPDATE usuarios set cookie='$numero_aleatorio' where id='$idoriginal'");
 
@@ -93,11 +93,11 @@ if (isset($_REQUEST['registrar'])) {
 				<h2 class="text-center">Registro</h2>       
 				<div class="input-group mb-3">
 					<span class="input-group-text" id="basic-addon1"><i class="fas fa-envelope"></i></span>
-					<input type="email" class="form-control" id="reg_email" onkeypress="return Validarbarra(event,this)" name="email" placeholder="Correo Electronico" required>
+					<input type="email" class="form-control" id="reg_email" onkeypress="return ValidarEspacio(event,this)" name="email" placeholder="Correo Electronico" required>
 				</div>
 				<div class="input-group mb-3">
 					<span class="input-group-text" id="basic-addon1"><i class="fas fa-user"></i></span>
-					<input type="text" class="form-control" id="reg_username" onkeypress="return Validarbarra(event,this)" name="usuario" placeholder="Usuario" minlength="5" maxlength="40" pattern="[A-Za-z0-9]+" required>
+					<input type="text" class="form-control" id="reg_username" onkeypress="return ValidarEspacio(event,this)" name="usuario" placeholder="Usuario" minlength="5" maxlength="40" pattern="[A-Za-z0-9]+" required>
 					<small id="help" class="form-text text-muted">
 						Letras y números - Sin espacios - Mínimo: 5 - Máximo: 40
 					</small>
@@ -105,7 +105,7 @@ if (isset($_REQUEST['registrar'])) {
 				
 				<div class="input-group mb-3">
 					<span class="input-group-text" id="basic-addon1"><i class="fas fa-lock"></i></span>
-					<input type="password" class="form-control" id="reg_password" name="contrasena" onkeypress="return Validarbarra(event,this)" placeholder="Contraseña" minlength="6" maxlength="30" pattern="[A-Za-z0-9]+" required>
+					<input type="password" class="form-control" id="reg_password" name="contrasena" onkeypress="return ValidarEspacio(event,this)" placeholder="Contraseña" minlength="6" maxlength="30" pattern="[A-Za-z0-9]+" required>
 					<small id="help" class="form-text text-muted">
 						Letras y números - Sin espacios - Mínimo: 6 - Máximo: 30
 					</small>
@@ -123,7 +123,7 @@ if (isset($_REQUEST['registrar'])) {
 			</form>
 		</div>
 		<script>
-			function Validarbarra(e, campo) {
+			function ValidarEspacio(e, campo) {
 				key = e.keyCode ? e.keyCode : e.which;
 				if (key == 32) {
 					alert("No se pueden usar espacios en este campo.");
