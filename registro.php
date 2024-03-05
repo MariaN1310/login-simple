@@ -64,10 +64,12 @@ if (isset($_REQUEST['registrar'])) {
                 $id_row = $id_result->fetch_assoc();
                 $id = $id_row['id'];
 
-                // Generar un número aleatorio y actualizar la cookie en la DB
+                // Generar un número aleatorio y actualizar la cookie y el token en la DB
                 $numero_aleatorio = mt_rand(1000000, 999999999);
-                $ssql = $conexion->prepare("UPDATE usuarios SET cookie = ? WHERE id = ?");
-                $ssql->bind_param("ii", $numero_aleatorio, $id);
+                $token_new = bin2hex(random_bytes(32));
+
+                $ssql = $conexion->prepare("UPDATE usuarios SET cookie = ?, token = ? WHERE id = ?");
+                $ssql->bind_param("isi", $numero_aleatorio, $token_new, $id);
                 if ($ssql->execute()) {
                     // Establecer las neuvas cookies
                     setcookie("id", $id, time()+(60*60*24*30), "/");
@@ -77,6 +79,7 @@ if (isset($_REQUEST['registrar'])) {
                     $_SESSION['logged'] = "Logged";
                     $_SESSION['usuario'] = $usuario;
                     $_SESSION['id'] = $id;
+                    $_SESSION["token"] = $token_new;
                     header("Location: index.php");
                     exit;
                 } else {

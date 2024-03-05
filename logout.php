@@ -9,7 +9,7 @@ if (isset($_SESSION['logged']) === FALSE) {
 }
 
 // Actualizar la cookie en la DB
-$actualizarCookie = $conexion->prepare("UPDATE usuarios SET cookie='0' WHERE id=?");
+$actualizarCookie = $conexion->prepare("UPDATE usuarios SET cookie='0', token=NULL WHERE id=?");
 $actualizarCookie->bind_param("i", $idDB);
 $actualizarCookie->execute();
 

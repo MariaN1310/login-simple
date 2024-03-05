@@ -13,29 +13,37 @@ if (!isset($_SESSION['logged'])) {
 		$login = $sql->get_result()->fetch_assoc();
 
 		if ($login) {
-			$_SESSION['logged'] = "Logged";
-			$_SESSION['usuario'] = $login['usuario'];
-			$_SESSION['id'] = $login['id'];
-			$_SESSION['email'] = $login['email'];
+			// Verificar el token
+			if (isset($_SESSION["token"]) && $_SESSION["token"] == $login['token']) {
+				$_SESSION['logged'] = "Logged";
+				$_SESSION['usuario'] = $login['usuario'];
+				$_SESSION['id'] = $login['id'];
+				$_SESSION['email'] = $login['email'];
 
-			// Generar un nuevo valor aleatorio para la cookie
-			$random_new = mt_rand(1000000, 999999999);
+				// Generar nuevos valores
+				$random_new = mt_rand(1000000, 999999999);
+				$token_new = bin2hex(random_bytes(32));
 
-			// Actualizar la cookie en la base de datos
-			$actualizarCookies = $conexion->prepare("UPDATE usuarios SET cookie = ? WHERE id = ?");
-			$actualizarCookies->bind_param("si", $random_new, $cookie_id);
-			$actualizarCookies->execute();
+				// Actualizar la cookie y el token en la DB
+				$actualizarCookies = $conexion->prepare("UPDATE usuarios SET cookie = ?, token = ? WHERE id = ?");
+				$actualizarCookies->bind_param("ssi", $random_new, $token_new, $cookie_id);
+				$actualizarCookies->execute();
 
-			// Establecer las nuevas cookies
-			setcookie("id", $cookie_id , time()+(60*60*24*30), "/", "", true, true);
-			setcookie("random", $random_new, time()+(60*60*24*30), "/", "", true, true);
+				// Establecer las nuevas cookies
+				setcookie("id", $cookie_id , time()+(60*60*24*30), "/", "", true, true);
+				setcookie("random", $random_new, time()+(60*60*24*30), "/", "", true, true);
+
+				// Almacenar el nuevo token en la sesión
+				$_SESSION["token"] = $token_new;
+			}
+		} else {
+			header("Location: login.php");
+			exit;
 		}
+	} else {
+		header("Location: login.php");
+		exit;
 	}
-}
-
-if (!isset($_SESSION['logged'])) {
-	header("Location: login.php");
-	exit;
 }
 ?>
 <!DOCTYPE html>
@@ -55,10 +63,11 @@ if (!isset($_SESSION['logged'])) {
 		<?php
 		echo "Logged: ".$_SESSION['logged']."<br>";
 		echo "Usuario: ".$_SESSION['usuario']."<br>";
-		echo "ID Cliente: ".$_SESSION['id']."<br>";
+		echo "ID Cliente: ".$_COOKIE['id']."<br>";
 		echo "E-mail: ".$_SESSION['email']."<br><br>";
 
 		echo "Numero Aleatorio Cookie: ".$_COOKIE["random"]."<br><br>";
+		echo "Token: ".$_SESSION["token"]."<br><br>";
 		?>
 
 		<a class="" href="logout.php">Cerrar Sesión</a>

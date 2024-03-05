@@ -48,6 +48,14 @@ if (isset($_REQUEST['iniciar'])) {
 		setcookie("id", $_SESSION['id'], time()+(60*60*24*30), "/", "", true, true);
 		setcookie("random", $random, time()+(60*60*24*30), "/", "", true, true);
 
+		$token = bin2hex(random_bytes(32));
+		$_SESSION['token'] = $token;
+
+		// Actualización del token en la base de datos
+		$actualizarToken = $conexion->prepare("UPDATE usuarios SET token=? WHERE id=?");
+		$actualizarToken->bind_param("si", $token, $_SESSION['id']);
+		$actualizarToken->execute();
+
 		// Redirigir a la página de inicio de sesión y salir del script
 		header("Location: index.php");
 		exit;
