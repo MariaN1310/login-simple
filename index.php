@@ -37,11 +37,17 @@ if (!isset($_SESSION['logged'])) {
 				$_SESSION["token"] = $token_new;
 			}
 		} else {
+			// Limpiar las cookies si no se encuentra un usuario válido
+			setcookie("id", "", time() - 3600, "/");
+			setcookie("random", "", time() - 3600, "/");
 			header("Location: login.php");
 			exit;
 		}
 	} else {
-		header("Location: login.php");
+		// Limpiar las cookies si no se encuentran las cookies necesarias
+		setcookie("id", "", time() - 3600, "/");
+		setcookie("random", "", time() - 3600, "/");
+		header("Location: index.php");
 		exit;
 	}
 }

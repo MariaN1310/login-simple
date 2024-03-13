@@ -3,98 +3,100 @@ session_start();
 require 'php/conexion.php';
 
 if (isset($_REQUEST['registrar'])) {
-    $pase = true; // Variable para rastrear si se pasan todas las validaciones
+	$pase = true; // Variable para rastrear si se pasan todas las validaciones
 
-    // Verificar si se proporcionó un correo electrónico
-    if (!isset($_POST['email'])) {
-        echo "<script type=\"text/javascript\">alert('Debe proporcionar un correo electrónico.'); history.go(-1);</script>";
-        $pase = false;
-    } else {
-        $email = $_POST['email'];
-        $_SESSION['email'] = $email;
-    }
+	// Verificar si se proporcionó un correo electrónico
+	if (!isset($_POST['email'])) {
+		echo "<script type=\"text/javascript\">alert('Debe proporcionar un correo electrónico.'); history.go(-1);</script>";
+		$pase = false;
+	} else {
+		$email = $_POST['email'];
+		$_SESSION['email'] = $email;
+	}
 
-    // Verificar si se proporcionó un nombre de usuario
-    if (!isset($_REQUEST['usuario'])) {
-        echo "<script type=\"text/javascript\">alert('Debe proporcionar un nombre de usuario.'); history.go(-1);</script>";
-        $pase = false;
-    } else {
-        $usuario = $_REQUEST['usuario'];
-        $_SESSION['usuario'] = $usuario;
-    }
+	// Verificar si se proporcionó un nombre de usuario
+	if (!isset($_REQUEST['usuario'])) {
+		echo "<script type=\"text/javascript\">alert('Debe proporcionar un nombre de usuario.'); history.go(-1);</script>";
+		$pase = false;
+	} else {
+		$usuario = $_REQUEST['usuario'];
+		$_SESSION['usuario'] = $usuario;
+	}
 
-    // Verificar si el correo electrónico ya existe en la base de datos
-    $correoExiste = $conexion->prepare("SELECT email FROM usuarios WHERE email = ?");
-    $correoExiste->bind_param("s", $email);
-    $correoExiste->execute();
-    $correoExiste->store_result(); // Almacenar el resultado
-    if ($correoExiste->num_rows === 1) {
-        echo "<script type=\"text/javascript\">alert('El correo electrónico ya existe. Intente uno diferente o inicie sesión.'); history.go(-1);</script>";
-        $pase = false;
-    }
+	// Verificar si el correo electrónico ya existe en la base de datos
+	$correoExiste = $conexion->prepare("SELECT email FROM usuarios WHERE email = ?");
+	$correoExiste->bind_param("s", $email);
+	$correoExiste->execute();
+	$correoExiste->store_result(); // Almacenar el resultado
+	if ($correoExiste->num_rows === 1) {
+		echo "<script type=\"text/javascript\">alert('El correo electrónico ya existe. Intente uno diferente o inicie sesión.'); history.go(-1);</script>";
+		$pase = false;
+	}
 
-    // Verificar si el nombre de usuario ya existe en la base de datos
-    $usuarioExiste = $conexion->prepare("SELECT usuario FROM usuarios WHERE usuario = ?");
-    $usuarioExiste->bind_param("s", $usuario);
-    $usuarioExiste->execute();
-    $usuarioExiste->store_result(); // Almacenar el resultado
-    if ($usuarioExiste->num_rows === 1) {
-        echo "<script type=\"text/javascript\">alert('El nombre de usuario ya existe. Intente uno diferente o inicie sesión.'); history.go(-1);</script>";
-        $pase = false;
-    }
+	// Verificar si el nombre de usuario ya existe en la base de datos
+	$usuarioExiste = $conexion->prepare("SELECT usuario FROM usuarios WHERE usuario = ?");
+	$usuarioExiste->bind_param("s", $usuario);
+	$usuarioExiste->execute();
+	$usuarioExiste->store_result(); // Almacenar el resultado
+	if ($usuarioExiste->num_rows === 1) {
+		echo "<script type=\"text/javascript\">alert('El nombre de usuario ya existe. Intente uno diferente o inicie sesión.'); history.go(-1);</script>";
+		$pase = false;
+	}
 
-    // Si todas las validaciones pasan, continuar con el registro
-    if ($pase) {
-        $contrasena = $_REQUEST['contrasena'];
-        $contrasenaConfirmar = $_REQUEST['contrasenaConfirmar'];
+	// Si todas las validaciones pasan, continuar con el registro
+	if ($pase) {
+		$contrasena = $_REQUEST['contrasena'];
+		$contrasenaConfirmar = $_REQUEST['contrasenaConfirmar'];
 
-        if ($contrasena !== $contrasenaConfirmar) {
-            echo "<script type=\"text/javascript\">alert('Las contraseñas no son iguales. Intente de nuevo.'); history.go(-1);</script>";
-        } else {
-            $encriptar = password_hash($contrasena, PASSWORD_BCRYPT, ["cost" => 11]);
+		if ($contrasena !== $contrasenaConfirmar) {
+			echo "<script type=\"text/javascript\">alert('Las contraseñas no son iguales. Intente de nuevo.'); history.go(-1);</script>";
+		} else {
+			$encriptar = password_hash($contrasena, PASSWORD_BCRYPT, ["cost" => 11]);
 
-            $sqlInsertar = $conexion->prepare("INSERT INTO usuarios (email, usuario, contrasena) VALUES (?, ?, ?)");
-            $sqlInsertar->bind_param("sss", $email, $usuario, $encriptar);
-            if ($sqlInsertar->execute()) {
-                // Obtener el ID del usuario recién registrado
-                $sqlID = $conexion->prepare("SELECT id FROM usuarios WHERE usuario = ?");
-                $sqlID->bind_param("s", $usuario);
-                $sqlID->execute();
-                $id_result = $sqlID->get_result();
-                $id_row = $id_result->fetch_assoc();
-                $id = $id_row['id'];
+			$sqlInsertar = $conexion->prepare("INSERT INTO usuarios (email, usuario, contrasena) VALUES (?, ?, ?)");
+			$sqlInsertar->bind_param("sss", $email, $usuario, $encriptar);
+			if ($sqlInsertar->execute()) {
+				// Obtener el ID del usuario recién registrado
+				$sqlID = $conexion->prepare("SELECT id FROM usuarios WHERE usuario = ?");
+				$sqlID->bind_param("s", $usuario);
+				$sqlID->execute();
+				$id_result = $sqlID->get_result();
+				$id_row = $id_result->fetch_assoc();
+				$id = $id_row['id'];
 
-                // Generar un número aleatorio y actualizar la cookie y el token en la DB
-                $numero_aleatorio = mt_rand(1000000, 999999999);
-                $token_new = bin2hex(random_bytes(32));
+				// Generar un número aleatorio y actualizar la cookie y el token en la DB
+				$random = mt_rand(1000000, 999999999);
+				$token_new = bin2hex(random_bytes(32));
 
-                $ssql = $conexion->prepare("UPDATE usuarios SET cookie = ?, token = ? WHERE id = ?");
-                $ssql->bind_param("isi", $numero_aleatorio, $token_new, $id);
-                if ($ssql->execute()) {
-                    // Establecer las neuvas cookies
-                    setcookie("id", $id, time()+(60*60*24*30), "/");
-                    setcookie("random", $numero_aleatorio, time()+(60*60*24*30));
+				$ssql = $conexion->prepare("UPDATE usuarios SET cookie = ?, token = ? WHERE id = ?");
+				$ssql->bind_param("isi", $random, $token_new, $id);
 
-                    // Iniciar sesión y redirigir al usuario
-                    $_SESSION['logged'] = "Logged";
-                    $_SESSION['usuario'] = $usuario;
-                    $_SESSION['id'] = $id;
-                    $_SESSION["token"] = $token_new;
-                    header("Location: index.php");
-                    exit;
-                } else {
-                    echo "<script type=\"text/javascript\">alert('Error al actualizar la cookie en la base de datos.'); history.go(-1);</script>";
-                }
-            } else {
-                echo "<script type=\"text/javascript\">alert('Error al registrar el usuario. Inténtelo de nuevo más tarde.'); history.go(-1);</script>";
-            }
-        }
-    }
+				if ($ssql->execute()) {
+					// Establecer las neuvas cookies
+					setcookie("id", $id, time()+(60*60*24*30), "/");
+					setcookie("random", $random, time()+(60*60*24*30));
+
+					// Iniciar sesión y redirigir al usuario
+					$_SESSION['logged'] = "Logged";
+					$_SESSION['usuario'] = $usuario;
+					$_SESSION['id'] = $id;
+					$_SESSION["token"] = $token_new;
+
+					header("Location: index.php");
+					exit;
+				} else {
+					echo "<script type=\"text/javascript\">alert('Error al actualizar la cookie en la base de datos.'); history.go(-1);</script>";
+				}
+			} else {
+				echo "<script type=\"text/javascript\">alert('Error al registrar el usuario. Inténtelo de nuevo más tarde.'); history.go(-1);</script>";
+			}
+		}
+	}
 }
 ?>
 <!DOCTYPE html>
 <html lang="es">
-    <head>
+	<head>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<title>Registro - Login-Simple</title>

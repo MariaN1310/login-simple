@@ -39,22 +39,18 @@ if (isset($_REQUEST['iniciar'])) {
 			echo "<script>window.location.reload();</script>"; // Actualizar la página
 		}
 
-		// Actualización de cookie en la DB
-		$actualizarCookie = $conexion->prepare("UPDATE usuarios SET cookie=? WHERE id=?");
-		$actualizarCookie->bind_param("si", $random, $_SESSION['id']);
-		$actualizarCookie->execute();
-		
-		// Establecer las nuevas cookies
-		setcookie("id", $_SESSION['id'], time()+(60*60*24*30), "/", "", true, true);
-		setcookie("random", $random, time()+(60*60*24*30), "/", "", true, true);
-
+		// Generar un nuevo token
 		$token = bin2hex(random_bytes(32));
 		$_SESSION['token'] = $token;
 
-		// Actualización del token en la base de datos
-		$actualizarToken = $conexion->prepare("UPDATE usuarios SET token=? WHERE id=?");
-		$actualizarToken->bind_param("si", $token, $_SESSION['id']);
-		$actualizarToken->execute();
+		// Actualizar la cookie y el token en la DB
+		$actualizarDatos = $conexion->prepare("UPDATE usuarios SET cookie=?, token=? WHERE id=?");
+		$actualizarDatos->bind_param("ssi", $random, $token, $_SESSION['id']);
+		$actualizarDatos->execute();
+
+		// Establecer las nuevas cookies
+		setcookie("id", $_SESSION['id'], time()+(60*60*24*30), "/", "", true, true);
+		setcookie("random", $random, time()+(60*60*24*30), "/", "", true, true);
 
 		// Redirigir a la página de inicio de sesión y salir del script
 		header("Location: index.php");

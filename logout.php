@@ -17,8 +17,8 @@ $actualizarCookie->execute();
 session_destroy();
 
 // Eliminar las cookies
-setcookie("id", time() - 3600);
-setcookie("random", time() - 3600);
+setcookie("id", "", time() - 3600, "/");
+setcookie("random", "", time() - 3600, "/");
 
 // Redirigir a la página de inicio de sesión y salir del script
 header("Location: login.php");
