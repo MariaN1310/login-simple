@@ -35,6 +35,12 @@ if (!isset($_SESSION['logged'])) {
 
 				// Almacenar el nuevo token en la sesión
 				$_SESSION["token"] = $token_new;
+			} else {
+				// Limpiar las cookies si el token no coincide
+				setcookie("id", "", time() - 3600, "/");
+				setcookie("random", "", time() - 3600, "/");
+				header("Location: ../login.php?error=token"); // Redirigir con un mensaje de error
+				exit;
 			}
 		} else {
 			// Limpiar las cookies si no se encuentra un usuario válido

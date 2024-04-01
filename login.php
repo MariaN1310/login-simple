@@ -60,6 +60,9 @@ if (isset($_REQUEST['iniciar'])) {
 		echo "<div class='error mt-3'><span>Usuario y/o contraseña incorrectos</span></div>";
 	}
 }
+if ($_GET['error'] == "token") {
+	echo "<div class='error mt-3'><span>Error de autentificación, inicie sesión nuevamente</span></div>";
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
